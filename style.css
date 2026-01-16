@@ -1,4 +1,4 @@
-:root { --red: #ff2a2a; --glow: #00f2ff; }
+:root { --red: #ff2a2a; --glow: #00f2ff; --yellow: #ffcc00; }
 body {
   margin: 0; padding: 0; background: #000;
   overflow: hidden; font-family: 'Bungee', cursive;
@@ -9,16 +9,17 @@ body {
   display: flex; justify-content: center; align-items: center;
 }
 #controls {
-  height: 160px; background: #111;
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 0 30px; border-top: 4px solid var(--red);
+  height: 160px; background: #151515;
+  display: flex; justify-content: space-around; align-items: center;
+  padding: 0 10px; border-top: 4px solid var(--red);
 }
 .btn {
-  width: 80px; height: 80px; background: #222;
+  width: 70px; height: 70px; background: #252525;
   color: #fff; display: flex; justify-content: center;
-  align-items: center; border-radius: 15px; font-size: 32px;
-  box-shadow: 0 6px 0 #000; transition: 0.1s;
+  align-items: center; border-radius: 12px; font-size: 28px;
+  box-shadow: 0 5px 0 #000; transition: 0.05s;
 }
-.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #000; background: var(--red); }
-.action { width: 140px; background: #333; border: 2px solid var(--glow); font-size: 20px; }
-.dpad { display: flex; gap: 20px; }
+.btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #000; background: var(--red); }
+.action { width: 110px; background: #333; border: 2px solid var(--glow); font-size: 18px; }
+.reset-btn { background: #444; color: var(--yellow); border: 2px solid var(--yellow); width: 60px; height: 60px; }
+.dpad { display: flex; gap: 10px; }
