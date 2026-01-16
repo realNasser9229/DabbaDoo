@@ -1,196 +1,207 @@
-/** * DabbaDoo: Overcooked Edition
- * Includes: Parallax, Enemy AI, Level Scaling, Persistence
- */
+class DabbaDooUltimate extends Phaser.Scene {
+    constructor() { super('DabbaDooUltimate'); }
 
-const GameConfig = {
-    type: Phaser.AUTO,
-    parent: 'game-container',
-    width: 800,
-    height: 450,
-    pixelArt: true,
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    physics: { default: 'arcade', arcade: { gravity: { y: 1400 }, debug: false } },
-    scene: { preload, create, update }
-};
-
-const game = new Phaser.Game(GameConfig);
-
-// --- GLOBAL STATE ---
-let state = {
-    score: 0,
-    highScore: localStorage.getItem('dabbaHigh') || 0,
-    level: 1,
-    hp: 3,
-    isInvincible: false,
-    input: { left: false, right: false, jump: false }
-};
-
-function preload() {
-    this.load.image('bg_far', 'assets/bg.png'); // Add more layers for parallax if you have them
-    this.load.image('player', 'assets/vulvian.png');
-    this.load.image('enemy', 'assets/enemy.png');
-    this.load.image('cage', 'assets/cage.png');
-    
-    // Create shapes for particles/missing assets
-    let g = this.make.graphics({x:0, y:0, add:false});
-    g.fillStyle(0xffffff).fillCircle(5,5,5);
-    g.generateTexture('particle', 10, 10);
-}
-
-function create() {
-    // 1. PARALLAX BACKGROUND
-    this.bg = this.add.tileSprite(400, 225, 800, 450, 'bg_far').setScrollFactor(0).setAlpha(0.5);
-    
-    // 2. WORLD GROUPS
-    this.platforms = this.physics.add.staticGroup();
-    this.enemies = this.physics.add.group();
-    this.particles = this.add.particles(0, 0, 'particle', {
-        speed: 100, scale: {start: 1, end: 0}, lifespan: 500, on: false
-    });
-
-    // 3. LEVEL GENERATOR (Overcooked Logic)
-    setupLevel.call(this);
-
-    // 4. PLAYER (The Legend)
-    this.player = this.physics.add.sprite(100, 300, 'player');
-    this.player.setCollideWorldBounds(true).setDragX(1500).setBounce(0.1);
-    
-    // 5. PHYSICS & INTERACTIONS
-    this.physics.add.collider(this.player, this.platforms);
-    this.physics.add.collider(this.enemies, this.platforms);
-    this.physics.add.overlap(this.player, this.enemies, onHitEnemy, null, this);
-    this.physics.add.overlap(this.player, this.goal, nextLevel, null, this);
-
-    // 6. UI OVERLAY (Internal)
-    this.uiScore = this.add.text(20, 20, `SCORE: ${state.score}`, { font: '24px Bungee', fill: '#00f2ff' });
-    this.uiHP = this.add.text(20, 55, '🍰'.repeat(state.hp), { fontSize: '24px' });
-
-    // 7. INPUTS
-    setupMobileControls();
-    this.keys = this.input.keyboard.createCursorKeys();
-
-    this.cameras.main.fadeIn(1000, 0, 0, 0);
-}
-
-function update() {
-    if (state.hp <= 0) return;
-
-    // Movement
-    let speed = 320;
-    if (this.keys.left.isDown || state.input.left) {
-        this.player.setVelocityX(-speed);
-        this.player.setFlipX(true);
-    } else if (this.keys.right.isDown || state.input.right) {
-        this.player.setVelocityX(speed);
-        this.player.setFlipX(false);
+    init(data) {
+        this.level = data.level || 1;
+        this.hp = 3;
+        this.score = data.score || 0;
+        this.isInvincible = false;
+        this.jumpCount = 0; // For double jump
+        this.inputState = { left: false, right: false, jump: false };
     }
 
-    // Pro Jump (Double Jump logic can be added here)
-    if ((this.keys.up.isDown || state.input.jump) && this.player.body.touching.down) {
-        this.player.setVelocityY(-680);
-        this.particles.emitParticleAt(this.player.x, this.player.y + 20, 5);
+    preload() {
+        this.load.image("bg", "assets/bg.png");
+        this.load.image("player", "assets/vulvian.png");
+        this.load.image("enemy", "assets/enemy.png");
+        this.load.image("cage", "assets/cage.png");
     }
 
-    // Parallax Move
-    this.bg.tilePositionX += this.player.body.velocity.x * 0.0005;
+    create() {
+        const { width, height } = this.scale;
 
-    // Enemy AI: Patrol & Flight
-    this.enemies.children.iterate(e => {
-        if (!e) return;
-        if (e.getData('type') === 'flyer') {
-            e.y += Math.sin(this.time.now / 200) * 2; // Hover effect
-        }
-        if (e.body.blocked.left || e.body.blocked.right) {
-            e.setVelocityX(e.body.velocity.x * -1);
-            e.setFlipX(e.body.velocity.x > 0);
-        }
-    });
-}
+        // 1. SCENE SETUP
+        this.add.image(400, 225, "bg").setAlpha(0.3).setScale(2).setScrollFactor(0);
+        this.platforms = this.physics.add.staticGroup();
+        this.setupMap();
 
-// --- FEATURE: PROCEDURAL LEVEL DESIGN ---
-function setupLevel() {
-    // Basic Floor
-    this.platforms.create(400, 440, null).setDisplaySize(1200, 30).refreshBody();
-
-    // Level Difficuly Scaling
-    let count = state.level * 3;
-    for(let i=0; i < count; i++) {
-        let x = Phaser.Math.Between(200, 750);
-        let y = Phaser.Math.Between(150, 350);
+        // 2. PLAYER (Snappy Physics)
+        this.player = this.physics.add.sprite(100, 300, "player");
+        this.player.setCollideWorldBounds(true);
+        this.player.setDragX(2000); // Instant stop
         
-        // Add Ledges
-        this.platforms.create(x, y, null).setDisplaySize(120, 15).refreshBody();
-        this.add.rectangle(x, y, 120, 15, 0xff2a2a, 0.8).setStrokeStyle(2, 0xffffff);
-
-        // Spawn Enemies with Types
-        if (Math.random() > 0.5) {
-            let e = this.enemies.create(x, y - 50, 'enemy');
-            e.setVelocityX(Phaser.Math.Between(50, 150)).setCollideWorldBounds(true).setBounce(1, 0);
-            e.setData('type', 'walker');
-        }
-    }
-
-    // Goal
-    this.goal = this.physics.add.staticSprite(750, 100, 'cage');
-}
-
-// --- FEATURE: COMBAT & JUICE ---
-function onHitEnemy(p, e) {
-    if (state.isInvincible) return;
-
-    // Stomp Check
-    if (p.body.velocity.y > 0 && p.y < e.y - 10) {
-        e.destroy();
-        p.setVelocityY(-500);
-        state.score += 250;
-        this.uiScore.setText(`SCORE: ${state.score}`);
-        this.cameras.main.shake(100, 0.01);
-        popText(this, e.x, e.y, "+250", "#00f2ff");
-    } else {
-        takeDamage.call(this);
-    }
-}
-
-function takeDamage() {
-    state.hp--;
-    this.uiHP.setText('🍰'.repeat(state.hp));
-    state.isInvincible = true;
-    
-    this.cameras.main.flash(200, 255, 0, 0);
-    this.cameras.main.shake(300, 0.02);
-    this.player.setTint(0xff0000);
-
-    if (state.hp <= 0) {
-        if (state.score > state.highScore) localStorage.setItem('dabbaHigh', state.score);
-        this.add.text(400, 200, 'RETIRED', { font: '64px Bungee', fill: '#f00' }).setOrigin(0.5);
-        this.time.delayedCall(2000, () => location.reload());
-    } else {
-        this.time.delayedCall(1000, () => {
-            this.player.clearTint();
-            state.isInvincible = false;
+        // 3. JUICE: TRAIL EFFECT
+        this.trailTimer = this.time.addEvent({
+            delay: 50,
+            callback: this.createTrail,
+            callbackScope: this,
+            loop: true
         });
+
+        // 4. ENEMIES & OBJECTS
+        this.enemies = this.physics.add.group();
+        this.spawnEnemies();
+        this.physics.add.collider(this.player, this.platforms);
+        this.physics.add.collider(this.enemies, this.platforms);
+        this.physics.add.overlap(this.player, this.enemies, this.onHitEnemy, null, this);
+        this.physics.add.overlap(this.player, this.cage, this.nextLevel, null, this);
+
+        // 5. UI (Internal)
+        this.add.text(20, 20, `LVL ${this.level} | SCORE: ${this.score}`, { font: '20px Bungee', fill: '#00f2ff' });
+        this.hpText = this.add.text(20, 50, '🍰'.repeat(this.hp), { fontSize: '24px' });
+
+        this.setupControls();
+        this.cameras.main.fadeIn(500);
+        this.cameras.main.setZoom(1.2); // Closer action
+        this.cameras.main.pan(400, 225, 500, 'Power2');
+        this.cameras.main.zoomTo(1, 1000);
+    }
+
+    setupMap() {
+        this.platforms.create(400, 440, null).setDisplaySize(1200, 20).refreshBody();
+        // Dynamic platforms based on level
+        for(let i=0; i<this.level + 2; i++) {
+            let x = 200 + (i * 150);
+            let y = 350 - (i * 50);
+            this.platforms.create(x, y, null).setDisplaySize(120, 15).refreshBody();
+            this.add.rectangle(x, y, 120, 15, 0xff2a2a).setStrokeStyle(2, 0xffffff);
+        }
+        this.cage = this.physics.add.staticSprite(750, 100, "cage");
+    }
+
+    spawnEnemies() {
+        for(let i=0; i<this.level; i++) {
+            let e = this.enemies.create(Phaser.Math.Between(300, 700), 100, "enemy");
+            e.setVelocityX(150).setBounce(1, 0).setCollideWorldBounds(true);
+        }
+    }
+
+    update() {
+        if (this.hp <= 0) return;
+
+        const cursors = this.input.keyboard.createCursorKeys();
+        const speed = 300; // Moderate, snappy speed
+
+        // Snappy Movement (No acceleration)
+        if (cursors.left.isDown || this.inputState.left) {
+            this.player.setVelocityX(-speed);
+            this.player.setFlipX(true);
+        } else if (cursors.right.isDown || this.inputState.right) {
+            this.player.setVelocityX(speed);
+            this.player.setFlipX(false);
+        } else {
+            this.player.setVelocityX(0);
+        }
+
+        // Double Jump Logic
+        if (this.player.body.touching.down) {
+            this.jumpCount = 0;
+        }
+
+        const canJump = (this.input.keyboard.checkDown(cursors.up, 250) || this.inputState.jump);
+        
+        if (canJump && this.jumpCount < 2) {
+            this.jump();
+        }
+    }
+
+    jump() {
+        this.player.setVelocityY(-550);
+        this.jumpCount++;
+        this.inputState.jump = false; // Reset mobile trigger
+        
+        // Squash and Stretch juice
+        this.tweens.add({
+            targets: this.player,
+            scaleY: 1.5, scaleX: 0.5,
+            duration: 100, yoyo: true
+        });
+
+        if (this.jumpCount === 2) {
+            this.cameras.main.shake(100, 0.005);
+            this.popText(this.player.x, this.player.y, "DOUBLE!", "#ffcc00");
+        }
+    }
+
+    createTrail() {
+        // Only create trail if moving fast or in air
+        if (Math.abs(this.player.body.velocity.x) > 100 || !this.player.body.touching.down) {
+            let trail = this.add.image(this.player.x, this.player.y, "player");
+            trail.setAlpha(0.4).setTint(0x00f2ff).setFlipX(this.player.flipX);
+            this.tweens.add({
+                targets: trail,
+                alpha: 0,
+                scale: 0.5,
+                duration: 300,
+                onComplete: () => trail.destroy()
+            });
+        }
+    }
+
+    onHitEnemy(p, e) {
+        if (this.isInvincible) return;
+
+        if (p.body.velocity.y > 0 && p.y < e.y - 10) {
+            e.destroy();
+            p.setVelocityY(-400);
+            this.score += 100;
+            this.cameras.main.shake(100, 0.02);
+            this.popText(e.x, e.y, "+100", "#fff");
+        } else {
+            this.takeDamage();
+        }
+    }
+
+    takeDamage() {
+        this.hp--;
+        this.hpText.setText('🍰'.repeat(this.hp));
+        this.isInvincible = true;
+        this.player.setTint(0xff0000);
+        this.cameras.main.flash(200, 255, 0, 0);
+
+        if (this.hp <= 0) {
+            this.add.text(400, 225, 'STUCK?', { font: '60px Bungee', fill: '#f00' }).setOrigin(0.5);
+            this.time.delayedCall(2000, () => this.scene.restart({level: 1, score: 0}));
+        } else {
+            this.time.delayedCall(1000, () => { this.player.clearTint(); this.isInvincible = false; });
+        }
+    }
+
+    nextLevel() {
+        this.scene.start('DabbaDooUltimate', { level: this.level + 1, score: this.score + 500 });
+    }
+
+    popText(x, y, msg, color) {
+        let t = this.add.text(x, y, msg, { font: 'bold 20px Bungee', fill: color });
+        this.tweens.add({ targets: t, y: y-50, alpha: 0, duration: 600, onComplete: () => t.destroy() });
+    }
+
+    setupControls() {
+        const bind = (id, key) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.ontouchstart = (e) => { e.preventDefault(); this.inputState[key] = true; };
+            el.ontouchend = (e) => { e.preventDefault(); this.inputState[key] = false; };
+        };
+        bind('btn-left', 'left');
+        bind('btn-right', 'right');
+        bind('btn-jump', 'jump');
+
+        // RESTART BUTTON
+        document.getElementById('btn-restart').onclick = () => {
+            this.cameras.main.fade(300, 0, 0, 0);
+            this.time.delayedCall(300, () => this.scene.restart({level: this.level, score: this.score}));
+        };
     }
 }
 
-function nextLevel() {
-    state.level++;
-    this.scene.restart();
-}
+const config = {
+    type: Phaser.AUTO,
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 450 },
+    parent: "game-container",
+    physics: { default: "arcade", arcade: { gravity: { y: 1400 }, debug: false } },
+    scene: DabbaDooUltimate
+};
 
-function popText(scene, x, y, msg, color) {
-    let t = scene.add.text(x, y, msg, { font: 'bold 20px Bungee', fill: color });
-    scene.tweens.add({ targets: t, y: y - 100, alpha: 0, duration: 800, onComplete: () => t.destroy() });
-}
-
-// --- FEATURE: PRO MOBILE INPUT ---
-function setupMobileControls() {
-    const bind = (id, key) => {
-        const el = document.getElementById(id);
-        el.onpointerdown = (e) => { e.preventDefault(); state.input[key] = true; };
-        el.onpointerup = (e) => { e.preventDefault(); state.input[key] = false; };
-        el.onpointerout = (e) => { e.preventDefault(); state.input[key] = false; };
-    };
-    bind('btn-left', 'left');
-    bind('btn-right', 'right');
-    bind('btn-jump', 'jump');
-        }
+new Phaser.Game(config);
+    
