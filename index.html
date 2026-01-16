@@ -2,30 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>DABBADOO v1.0-beta</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DabbaDoo | ULTRA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Press+Start+2P&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 </head>
 <body>
 
-  <h1>DabbaDoo</h1>
+  <div id="ui-layer">
+    <div class="stats-top">
+      <div id="hearts-display">🍰🍰🍰</div>
+      <div id="score-display">00000</div>
+    </div>
+  </div>
 
-  <div id="game-container">
+  <div id="game-wrapper">
     <div id="game"></div>
   </div>
 
   <div id="mobileControls">
     <div class="dpad">
-      <button id="leftBtn">⬅️</button>
-      <button id="rightBtn">➡️</button>
+      <button id="leftBtn" class="control-btn">◀</button>
+      <button id="rightBtn" class="control-btn">▶</button>
     </div>
-    <div class="action-btn">
-      <button id="jumpBtn">A</button>
+    <div class="action-zone">
+      <button id="jumpBtn" class="control-btn jump-btn">JUMP</button>
     </div>
   </div>
 
   <script src="main.js"></script>
 </body>
-</html>
+  </html>
+  
