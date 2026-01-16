@@ -4,10 +4,11 @@ body {
   color: white;
   font-family: monospace;
   text-align: center;
+  overflow: hidden;
 }
 
 h1 {
-  margin: 10px;
+  margin: 8px;
   color: #ff2a2a;
   text-shadow: 0 0 10px red;
 }
@@ -15,4 +16,25 @@ h1 {
 #game {
   margin: auto;
   width: 800px;
+  max-width: 100%;
+}
+
+/* Mobile controls */
+#mobileControls {
+  position: fixed;
+  bottom: 12px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 18px;
+}
+
+#mobileControls button {
+  font-size: 24px;
+  padding: 14px 18px;
+  background: #111;
+  color: white;
+  border: 2px solid #ff2a2a;
+  border-radius: 12px;
+  opacity: 0.9;
 }
