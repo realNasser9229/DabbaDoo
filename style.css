@@ -1,62 +1,82 @@
 :root {
-  --bg: #0a0a0a;
-  --red: #ff2a2a;
-  --blue: #00f2ff;
+  --bg: #050505;
+  --neon-blue: #00f3ff;
+  --neon-pink: #ff00ff;
+  --neon-green: #00ff66;
+  --glass: rgba(255, 255, 255, 0.1);
 }
 
-body, html {
+body {
   margin: 0; padding: 0;
   width: 100%; height: 100dvh;
   background: var(--bg);
+  color: white;
   overflow: hidden;
   display: flex;
-  flex-direction: column; /* Stack Game on top of Controls */
+  flex-direction: column;
+  font-family: 'Orbitron', sans-serif;
+  touch-action: none;
 }
 
-/* The Game Area: Takes all remaining space */
 #game-zone {
-  flex: 1; 
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #000;
-  width: 100%;
+  background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+  border-bottom: 2px solid var(--neon-blue);
+  box-shadow: 0 0 20px var(--neon-blue);
+  z-index: 2;
 }
 
 #game canvas {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain; /* Ensures the game stays 16:9 */
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  box-shadow: 0 0 30px rgba(0,0,0,0.8);
 }
 
-/* The Control Area: Fixed height at the bottom */
 #control-zone {
-  height: 150px; 
-  background: #151515;
-  border-top: 3px solid var(--red);
+  height: 160px;
+  background: #0f0f13;
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
-  padding: 0 10px;
+  padding: 10px 20px;
   box-sizing: border-box;
 }
 
-button {
-  font-family: 'Bungee', cursive;
-  background: #252525;
+.dpad { display: flex; gap: 15px; }
+.action-pad { display: flex; gap: 15px; align-items: flex-end; }
+
+.cyber-btn {
+  background: var(--glass);
   color: white;
-  border: 2px solid #444;
-  border-radius: 12px;
-  touch-action: none;
+  border: 2px solid #333;
+  border-radius: 10px;
+  font-family: 'Orbitron';
+  backdrop-filter: blur(5px);
   box-shadow: 0 4px 0 #000;
+  transition: transform 0.05s;
+  user-select: none;
+  font-size: 24px;
+  width: 70px; height: 70px;
 }
 
-button:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #000;
-  background: var(--red);
+.cyber-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #000;
+  border-color: var(--neon-blue);
+  background: rgba(0, 243, 255, 0.2);
 }
 
-#leftBtn, #rightBtn { width: 70px; height: 70px; font-size: 24px; }
-#jumpBtn { width: 110px; height: 85px; background: #333; border-color: var(--blue); font-size: 20px; }
-#restartBtn { width: 55px; height: 55px; font-size: 20px; color: #ffcc00; border-color: #ffcc00; }
+.jump { 
+  width: 100px; height: 90px; 
+  border-color: var(--neon-green); 
+  font-size: 18px; font-weight: bold;
+}
+.dash { 
+  width: 70px; height: 70px; 
+  border-color: var(--neon-pink); 
+  font-size: 24px;
+}
+.sm { width: 50px; height: 50px; font-size: 20px; border-color: #ffcc00; color: #ffcc00; }
