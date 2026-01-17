@@ -159,5 +159,5 @@ function update() {
     }
     
     if (player.y > 600) this.scene.restart();
-                         }
+}
     
