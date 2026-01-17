@@ -1,310 +1,283 @@
 // ----------------------------------------------------
-// 1. ASSET GENERATOR (No more PNG files needed!)
+// 1. ASSET GENERATOR (Code-drawn Graphics)
 // ----------------------------------------------------
 class TextureGenerator {
     static generate(scene) {
-        // PLAYER (Vulvian): A Neon Cube with a Headband
         let g = scene.make.graphics({x:0, y:0, add:false});
-        g.fillStyle(0x00f3ff, 1); // Body
-        g.fillRect(4, 4, 24, 24);
-        g.fillStyle(0xff00ff, 1); // Headband
-        g.fillRect(4, 8, 24, 6);
-        g.fillStyle(0xffffff, 1); // Eyes
-        g.fillRect(8, 10, 6, 6); g.fillRect(20, 10, 6, 6);
+
+        // PLAYER: Neon Box
+        g.fillStyle(0x00f3ff, 1); g.fillRect(0,0,32,32);
+        g.fillStyle(0xffffff, 1); g.fillRect(6,6,8,8); g.fillRect(18,6,8,8); // Eyes
         g.generateTexture('player', 32, 32);
 
-        // TILE (Ground): Sci-fi block
-        g.clear();
-        g.lineStyle(2, 0x00ff66, 1);
-        g.fillStyle(0x052211, 1);
-        g.strokeRect(0,0,32,32);
-        g.fillRect(0,0,32,32);
-        g.lineStyle(1, 0x00ff66, 0.3);
-        g.beginPath(); g.moveTo(0,0); g.lineTo(32,32); g.strokePath();
+        // GROUND: Dark Metal
+        g.clear(); g.lineStyle(2, 0x4444ff, 1); g.fillStyle(0x111111, 1);
+        g.strokeRect(0,0,32,32); g.fillRect(0,0,32,32);
         g.generateTexture('tile', 32, 32);
 
-        // SPIKE: Red Triangle
-        g.clear();
-        g.fillStyle(0xff2a2a, 1);
-        g.beginPath();
-        g.moveTo(0, 32); g.lineTo(16, 0); g.lineTo(32, 32);
-        g.closePath();
-        g.fillPath();
+        // SPIKE: Red Death
+        g.clear(); g.fillStyle(0xff3333, 1);
+        g.beginPath(); g.moveTo(0,32); g.lineTo(16,0); g.lineTo(32,32); g.fillPath();
         g.generateTexture('spike', 32, 32);
 
-        // ENEMY: Angry Blob
-        g.clear();
-        g.fillStyle(0xff0000, 1);
-        g.fillCircle(16, 16, 14);
-        g.fillStyle(0x000000, 1); // Angry eyes
-        g.fillRect(8, 12, 6, 4); g.fillRect(18, 12, 6, 4);
+        // ENEMY: Purple Blob
+        g.clear(); g.fillStyle(0xff00ff, 1); g.fillCircle(16,16,16);
+        g.fillStyle(0x000000, 1); g.fillRect(8,12,16,4);
         g.generateTexture('enemy', 32, 32);
 
-        // PARTICLE: Dust
-        g.clear();
-        g.fillStyle(0xffffff, 1);
-        g.fillRect(0,0,4,4);
-        g.generateTexture('dust', 4, 4);
+        // PARTICLE: Pixels
+        g.clear(); g.fillStyle(0xffffff, 1); g.fillRect(0,0,6,6);
+        g.generateTexture('pixel', 6, 6);
 
-        // CAGE (Goal)
-        g.clear();
-        g.lineStyle(2, 0xffcc00, 1);
-        g.strokeRect(0,0,32,48);
-        g.generateTexture('goal', 32, 48);
+        // GOAL: Gold Cage
+        g.clear(); g.lineStyle(4, 0xffcc00); g.strokeRect(0,0,40,60);
+        g.generateTexture('goal', 40, 60);
     }
 }
 
 // ----------------------------------------------------
-// 2. LEVEL DESIGNS (ASCII ART)
-// #=Wall, @=Start, X=Enemy, ^=Spike, G=Goal, !=Boss
+// 2. LEVELS (ASCII Map)
 // ----------------------------------------------------
 const LEVELS = [
-    [ // LEVEL 1: Basics
-        ".........................",
-        ".........................",
-        "...................G.....",
-        "...................###...",
-        ".@.............###.......",
-        "#####...####.............",
-        "#####....................",
-        "#####^^^^^^^^^^^^^^^#####",
-        "#########################"
+    [ // LEVEL 1: Learn to Jump
+        ".......................",
+        "...................G...",
+        "...................###.",
+        ".@.......###...........",
+        "#####...........###....",
+        "#####^^^^^^^^^^^#######",
+        "#######################"
     ],
-    [ // LEVEL 2: Verticality
-        ".........................",
-        "G........................",
-        "###..........####........",
-        ".....###.................",
-        "..........X..............",
-        ".......######.......###..",
-        ".@.......................",
-        "#####..........^..^......",
-        "#####^^^^^^^^^^#..#^^^^^^",
-        "#########################"
+    [ // LEVEL 2: Double Jump Training
+        ".......................",
+        "G......................",
+        "###....................",
+        "......###..............",
+        "............###........",
+        ".@.....................",
+        "#####...........^..^...",
+        "#####^^^^^^^^^^^#^^#^^^",
+        "#######################"
     ],
-    [ // LEVEL 3: The Pit
-        "G.......................",
-        "###.....................",
-        ".........X....X.........",
-        "......##########........",
-        "........................",
-        "...##..............##...",
-        "........................",
-        ".@....^..........^......",
-        "#####.#.^^^^^^^^.#.#####",
-        "#####.##########.#.#####"
+    [ // LEVEL 3: Enemy Patrols
+        ".......................",
+        "...................G...",
+        "...................###.",
+        "..........X...X........",
+        ".......##########......",
+        ".@.....................",
+        "#####...^.......^...###",
+        "#######################"
+    ],
+    [ // LEVEL 4: The Tower
+        "G......................",
+        "###....................",
+        "........###............",
+        ".......................",
+        "......X.....X.....X....",
+        "....################...",
+        ".......................",
+        "..........###..........",
+        ".@...^....###....^.....",
+        "#######################"
     ]
 ];
 
 // ----------------------------------------------------
-// 3. MAIN GAME SCENE
+// 3. MAIN GAME LOGIC
 // ----------------------------------------------------
 class MainScene extends Phaser.Scene {
     constructor() { super('MainScene'); }
 
     init(data) {
-        this.levelIdx = data.level || 0;
-        this.score = data.score || 0;
-        this.hp = 3;
-        
-        // Advanced Movement Flags
+        this.level = data.level || 0;
+        this.jumpCount = 0; // Tracks jumps (0, 1, 2)
         this.canDash = true;
         this.isDashing = false;
-        this.wallJumpTimer = 0;
-        
         this.inputState = { left:false, right:false, jump:false, dash:false };
     }
 
     preload() {
-        TextureGenerator.generate(this); // <--- GENERATES SPRITES
+        TextureGenerator.generate(this);
     }
 
     create() {
-        // --- VISUALS ---
-        this.cameras.main.setBackgroundColor('#050510');
+        // --- SETUP ---
+        this.cameras.main.setBackgroundColor('#101015');
         
-        // Grid Background
-        let grid = this.add.grid(400, 225, 800, 450, 32, 32, 0x050510, 1, 0x111133, 1);
-        grid.setScrollFactor(0);
-
-        // --- GROUPS ---
         this.platforms = this.physics.add.staticGroup();
         this.spikes = this.physics.add.staticGroup();
         this.enemies = this.physics.add.group();
-        this.goal = this.physics.add.staticGroup();
+        this.goals = this.physics.add.staticGroup();
 
-        // --- LEVEL PARSER ---
-        this.parseLevel(LEVELS[this.levelIdx] || LEVELS[0]);
+        // --- LEVEL BUILDER ---
+        this.buildLevel(LEVELS[this.level]);
 
         // --- PLAYER ---
-        // If no @ found, default to 100,100
-        if(!this.playerStartX) { this.playerStartX = 100; this.playerStartY = 100; }
-        
-        this.player = this.physics.add.sprite(this.playerStartX, this.playerStartY, 'player');
-        this.player.setCollideWorldBounds(true);
-        this.player.setDragX(1000); // Snappy stop
-        this.player.body.setGravityY(1000);
+        this.player = this.physics.add.sprite(this.startX || 100, this.startY || 100, 'player');
+        this.player.setCollideWorldBounds(true).setDragX(1200);
+        this.player.body.setGravityY(1200);
 
         // --- PARTICLES ---
-        this.emitter = this.add.particles(0, 0, 'dust', {
-            speed: {min: 50, max: 100}, scale: {start:1, end:0}, lifespan: 300, blendMode: 'ADD', on: false
+        this.emitter = this.add.particles(0, 0, 'pixel', {
+            speed: {min: 50, max: 150}, scale: {start:1, end:0}, lifespan: 400, on: false
         });
 
-        // --- COLLISIONS ---
+        // --- COLLISION ---
         this.physics.add.collider(this.player, this.platforms);
         this.physics.add.collider(this.enemies, this.platforms);
-        this.physics.add.overlap(this.player, this.spikes, this.die, null, this);
-        this.physics.add.overlap(this.player, this.enemies, this.handleEnemy, null, this);
-        this.physics.add.overlap(this.player, this.goal, this.win, null, this);
+        
+        // Spike Death
+        this.physics.add.overlap(this.player, this.spikes, (p, s) => this.die(p), null, this);
+        
+        // Enemy Logic
+        this.physics.add.overlap(this.player, this.enemies, (p, e) => {
+            if (p.body.velocity.y > 0 && p.y < e.y - 10) {
+                // STOMP
+                e.destroy();
+                p.setVelocityY(-400);
+                this.spawnParticles(e.x, e.y, 0xff00ff);
+            } else {
+                this.die(p);
+            }
+        }, null, this);
 
-        // --- CAMERAS ---
-        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-        this.cameras.main.setZoom(1.5);
-        this.cameras.main.setBounds(0, 0, 1200, 800); // Larger world bounds
-
-        // --- UI ---
-        this.ui = this.add.text(this.cameras.main.width/2, 30, `LVL ${this.levelIdx+1}`, {
-            font: '20px Orbitron', fill: '#00f3ff'
-        }).setScrollFactor(0).setOrigin(0.5);
+        // Win Level
+        this.physics.add.overlap(this.player, this.goals, () => {
+            this.add.text(400, 200, "LEVEL COMPLETE", { font:'40px Orbitron', fill:'#0f0' }).setOrigin(0.5);
+            this.physics.pause();
+            this.time.delayedCall(1000, () => {
+                let next = (this.level + 1) % LEVELS.length;
+                this.scene.restart({ level: next });
+            });
+        }, null, this);
 
         // --- CONTROLS ---
         this.cursors = this.input.keyboard.createCursorKeys();
         this.dashKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-        this.setupMobile();
+        this.setupMobileControls();
+
+        // UI
+        this.add.text(20, 20, `LVL ${this.level + 1}`, { font:'20px Orbitron', fill:'#fff' });
     }
 
-    parseLevel(layout) {
-        const TILE_SIZE = 32;
-        layout.forEach((row, y) => {
+    buildLevel(map) {
+        map.forEach((row, y) => {
             row.split('').forEach((char, x) => {
-                const worldX = x * TILE_SIZE;
-                const worldY = y * TILE_SIZE;
-
-                if (char === '#') this.platforms.create(worldX, worldY, 'tile').refreshBody();
-                if (char === '^') {
-                    let s = this.spikes.create(worldX, worldY + 16, 'spike'); // Offset for smaller hitbox
-                    s.body.setSize(20, 16).setOffset(6, 16);
-                } 
+                let wx = x * 32, wy = y * 32;
+                if (char === '#') this.platforms.create(wx, wy, 'tile').refreshBody();
+                if (char === '^') this.spikes.create(wx, wy + 10, 'spike').body.setSize(20, 20).setOffset(6, 12);
                 if (char === 'X') {
-                    let e = this.enemies.create(worldX, worldY, 'enemy');
+                    let e = this.enemies.create(wx, wy, 'enemy');
                     e.setVelocityX(100).setBounce(1, 0).setCollideWorldBounds(true);
                 }
-                if (char === 'G') this.goal.create(worldX, worldY, 'goal');
-                if (char === '@') { this.playerStartX = worldX; this.playerStartY = worldY; }
+                if (char === 'G') this.goals.create(wx, wy, 'goal');
+                if (char === '@') { this.startX = wx; this.startY = wy; }
             });
         });
     }
 
     update() {
         if (!this.player.active) return;
+        const keys = this.inputState;
+        const cursors = this.cursors;
 
-        const { left, right, up } = this.cursors;
-        const keys = this.inputState; // Mobile keys
-
-        // 1. DASH LOGIC
-        const isDashPressed = Phaser.Input.Keyboard.JustDown(this.dashKey) || keys.dash;
-        if (isDashPressed && this.canDash && !this.isDashing) {
-            this.doDash();
-            keys.dash = false; // Reset mobile trigger
-        }
-
-        if (this.isDashing) return; // Don't allow movement while dashing
-
-        // 2. STANDARD MOVEMENT
-        if (left.isDown || keys.left) {
-            this.player.setVelocityX(-200);
+        // 1. HORIZONTAL MOVE
+        if (cursors.left.isDown || keys.left) {
+            this.player.setVelocityX(-250);
             this.player.setFlipX(true);
-        } else if (right.isDown || keys.right) {
-            this.player.setVelocityX(200);
+        } else if (cursors.right.isDown || keys.right) {
+            this.player.setVelocityX(250);
             this.player.setFlipX(false);
         } else {
             this.player.setVelocityX(0);
         }
 
-        // 3. JUMPING & WALL JUMPING
-        const onFloor = this.player.body.blocked.down;
-        
-        // Reset Dash on floor
-        if (onFloor) this.canDash = true;
+        // 2. JUMP & DOUBLE JUMP
+        const onFloor = this.player.body.touching.down;
+        if (onFloor) this.jumpCount = 0;
 
-        if ((up.isDown || keys.jump) && onFloor) {
-            this.player.setVelocityY(-450);
-            this.createDust(this.player.x, this.player.y + 16);
+        // Check for Jump Press (Keyboard JustDown OR Mobile state change)
+        const jumpPressed = Phaser.Input.Keyboard.JustDown(cursors.up) || keys.jump;
+        
+        if (jumpPressed) {
+            if (onFloor) {
+                this.jump(false);
+            } else if (this.jumpCount < 2) {
+                this.jump(true);
+            }
+            // Reset mobile jump to prevent auto-fire
+            keys.jump = false; 
+        }
+
+        // 3. DASH
+        if ((Phaser.Input.Keyboard.JustDown(this.dashKey) || keys.dash) && this.canDash) {
+            this.dash();
+            keys.dash = false;
         }
     }
 
-    doDash() {
-        this.isDashing = true;
-        this.canDash = false;
+    jump(isDouble) {
+        this.player.setVelocityY(-500);
+        this.jumpCount++;
         
-        // Dash Direction
+        if (isDouble) {
+            // Spin Animation for Double Jump
+            this.tweens.add({
+                targets: this.player, angle: 360, duration: 400
+            });
+            this.spawnParticles(this.player.x, this.player.y + 20, 0x00f3ff);
+        }
+    }
+
+    dash() {
+        this.isDashing = true; this.canDash = false;
         const dir = this.player.flipX ? -1 : 1;
         this.player.setVelocityX(600 * dir);
-        this.player.setVelocityY(0);
         this.player.body.allowGravity = false;
-
-        // Visuals
-        this.cameras.main.shake(100, 0.005);
-        this.tweens.add({
-            targets: this.player, alpha: 0.5, duration: 50, yoyo: true, repeat: 3
-        });
-
-        // End Dash
+        this.cameras.main.shake(50, 0.005);
+        
         this.time.delayedCall(200, () => {
             this.isDashing = false;
             this.player.body.allowGravity = true;
-            this.player.setVelocityX(0);
+            this.canDash = true; // Simple cooldown logic
         });
     }
 
-    handleEnemy(player, enemy) {
-        if (player.body.velocity.y > 0 && player.y < enemy.y - 10) {
-            // STOMP
-            enemy.destroy();
-            player.setVelocityY(-300);
-            this.cameras.main.shake(50, 0.01);
-            this.createDust(enemy.x, enemy.y);
-        } else {
-            this.die();
-        }
-    }
-
-    createDust(x, y) {
-        this.emitter.emitParticleAt(x, y, 10);
-    }
-
-    die() {
-        this.physics.pause();
-        this.player.setTint(0xff0000);
-        this.cameras.main.shake(300, 0.05);
+    die(player) {
+        // Prevent multiple deaths
+        if (!player.active) return;
         
-        let txt = this.add.text(this.player.x, this.player.y - 50, "WASTED", {
-            font: '20px Orbitron', fill: '#ff0000', stroke: '#000', strokeThickness: 4
-        }).setOrigin(0.5);
+        this.spawnParticles(player.x, player.y, 0xff0000); // Red Explosion
+        this.cameras.main.shake(200, 0.05);
+        player.destroy(); // Remove player instantly
 
-        this.time.delayedCall(1000, () => this.scene.restart());
-    }
-
-    win() {
-        this.physics.pause();
-        let txt = this.add.text(this.player.x, this.player.y - 50, "CLEARED!", {
-            font: '20px Orbitron', fill: '#00ff00', stroke: '#000', strokeThickness: 4
-        }).setOrigin(0.5);
-
-        this.time.delayedCall(1500, () => {
-            let next = this.levelIdx + 1;
-            if (next >= LEVELS.length) next = 0; // Loop back
-            this.scene.restart({ level: next });
+        this.time.delayedCall(1000, () => {
+            this.scene.restart();
         });
     }
 
-    setupMobile() {
+    spawnParticles(x, y, color) {
+        let p = this.add.particles(0, 0, 'pixel', {
+            x: x, y: y,
+            speed: { min: 50, max: 200 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0 },
+            lifespan: 500,
+            gravityY: 500,
+            quantity: 20,
+            tint: color
+        });
+        p.explode();
+    }
+
+    setupMobileControls() {
         const bind = (id, k) => {
-            let b = document.getElementById(id);
-            b.ontouchstart = (e) => { e.preventDefault(); this.inputState[k] = true; };
-            b.ontouchend = (e) => { e.preventDefault(); this.inputState[k] = false; };
-            b.onmousedown = (e) => { e.preventDefault(); this.inputState[k] = true; };
-            b.onmouseup = (e) => { e.preventDefault(); this.inputState[k] = false; };
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); this.inputState[k] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); this.inputState[k] = false; });
+            btn.addEventListener('mousedown', (e) => { e.preventDefault(); this.inputState[k] = true; });
+            btn.addEventListener('mouseup', (e) => { e.preventDefault(); this.inputState[k] = false; });
         };
         bind('leftBtn', 'left'); bind('rightBtn', 'right');
         bind('jumpBtn', 'jump'); bind('dashBtn', 'dash');
@@ -315,12 +288,12 @@ class MainScene extends Phaser.Scene {
 
 const config = {
     type: Phaser.AUTO,
-    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }, // Fullscreen resize
+    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
     parent: 'game',
     pixelArt: true,
-    physics: { default: 'arcade', arcade: { gravity: { y: 1400 } } },
+    physics: { default: 'arcade', arcade: { gravity: { y: 1600 } } }, // Higher gravity for snappy feel
     scene: MainScene
 };
 
 new Phaser.Game(config);
-    
+        
