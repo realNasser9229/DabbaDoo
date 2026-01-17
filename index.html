@@ -1,33 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>DabbaDoo: MEGA OVERDRIVE</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+    <meta charset="utf-8">
+    <title>DabbaDoo Adventure</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <style>
+        body, html { margin: 0; padding: 0; width: 100vw; height: 100dvh; overflow: hidden; background: #000; }
+        #game-container { width: 100%; height: 100%; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 </head>
 <body>
-
-  <div id="game-container"></div>
-
-  <div id="controller">
-    <div class="left-cluster">
-      <button class="btn move-btn" id="leftBtn">◀</button>
-      <button class="btn move-btn" id="rightBtn">▶</button>
-    </div>
-
-    <div class="center-cluster">
-      <button class="btn restart-btn" id="restartBtn">↻</button>
-    </div>
-
-    <div class="right-cluster">
-      <button class="btn dash-btn" id="dashBtn">DASH</button>
-      <button class="btn jump-btn" id="jumpBtn">JUMP</button>
-    </div>
-  </div>
-
-  <script src="main.js"></script>
+    <div id="game-container"></div>
+    <script src="main.js"></script>
 </body>
 </html>
