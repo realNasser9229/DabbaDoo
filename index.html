@@ -2,31 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>DabbaDoo: INFINITE</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>DabbaDoo: OVERDRIVE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 </head>
 <body>
+  <div id="game-container"></div>
 
-  <div id="game-zone">
-    <div id="game"></div>
+  <div id="ui-overlay">
+    <div id="stats">
+        <span id="score-val">BITS: 0</span>
+        <span id="lvl-val">LVL: 1</span>
+    </div>
   </div>
 
-  <div id="control-zone">
-    <div class="dpad">
-      <button id="leftBtn" class="cyber-btn">◀</button>
-      <button id="rightBtn" class="cyber-btn">▶</button>
+  <div id="controls">
+    <div class="group">
+      <button class="ctrl-btn" id="leftBtn">◀</button>
+      <button class="ctrl-btn" id="rightBtn">▶</button>
     </div>
     
-    <div class="center-pad">
-        <button id="restartBtn" class="cyber-btn sm">☠️</button>
-    </div>
+    <button class="ctrl-btn reset" id="restartBtn">↻</button>
 
-    <div class="action-pad">
-      <button id="dashBtn" class="cyber-btn dash">💨</button>
-      <button id="jumpBtn" class="cyber-btn jump">JUMP</button>
+    <div class="group">
+      <button class="ctrl-btn dash" id="dashBtn">💨</button>
+      <button class="ctrl-btn jump" id="jumpBtn">JUMP</button>
     </div>
   </div>
 
