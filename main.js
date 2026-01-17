@@ -1,121 +1,189 @@
+// ---------------------------------------------------------
+// 1. CHARACTER & WORLD ASSET GENERATOR
+// ---------------------------------------------------------
+class GraphicsGen {
+    static generate(scene) {
+        let g = scene.make.graphics({x: 0, y: 0, add: false});
+
+        // VULVIAN (The Hero) - Neon Cyan with Headband
+        g.fillStyle(0x00f3ff); g.fillRect(0, 0, 32, 32);
+        g.fillStyle(0xff00ff); g.fillRect(0, 4, 32, 6); // Headband
+        g.fillStyle(0xffffff); g.fillRect(6, 12, 6, 6); g.fillRect(20, 12, 6, 6); // Eyes
+        g.generateTexture('vulvian', 32, 32);
+
+        // BOOBI DOODI (The Target) - Pink and Small
+        g.clear(); g.fillStyle(0xff00ff); g.fillCircle(16, 16, 12);
+        g.fillStyle(0xffffff); g.fillCircle(12, 12, 3); g.fillCircle(20, 12, 3);
+        g.generateTexture('boobi', 32, 32);
+
+        // THE CAGE
+        g.clear(); g.lineStyle(3, 0xff0000); g.strokeRect(2, 2, 44, 44);
+        for(let i=0; i<5; i++) { g.lineBetween(8 + (i*8), 2, 8 + (i*8), 46); }
+        g.generateTexture('cage', 48, 48);
+
+        // NEON BRICK
+        g.clear(); g.lineStyle(2, 0x00ff66); g.strokeRect(0, 0, 32, 32);
+        g.fillStyle(0x002211); g.fillRect(2, 2, 28, 28);
+        g.generateTexture('brick', 32, 32);
+
+        // UI BUTTON CIRCLE
+        g.clear(); g.fillStyle(0xffffff, 0.15); g.fillCircle(60, 60, 60);
+        g.lineStyle(4, 0xffffff, 0.3); g.strokeCircle(60, 60, 60);
+        g.generateTexture('ui-btn', 120, 120);
+    }
+}
+
+// ---------------------------------------------------------
+// 2. ADVENTURE SCENE
+// ---------------------------------------------------------
+class AdventureScene extends Phaser.Scene {
+    constructor() { super('AdventureScene'); }
+
+    init() {
+        this.jumps = 0;
+        this.isMovingLeft = false;
+        this.isMovingRight = false;
+        this.score = 0;
+    }
+
+    preload() { GraphicsGen.generate(this); }
+
+    create() {
+        // --- THE WORLD MAP ---
+        // #=Wall, @=Vulvian, B=Boobi in Cage, ^=Spike
+        const map = [
+            "##########################################",
+            "#........................................#",
+            "#...................................B....#",
+            "#.................................#####..#",
+            "#..........................###...........#",
+            "#..........####..........................#",
+            "#...................####.................#",
+            "####.....................................#",
+            "#.........######...........^^^^..........#",
+            "#..@...............#######################",
+            "##########################################"
+        ];
+
+        this.platforms = this.physics.add.staticGroup();
+        this.rescueTarget = this.physics.add.sprite(0, 0, 'boobi');
+        this.cage = this.physics.add.staticImage(0, 0, 'cage');
+
+        map.forEach((row, y) => {
+            row.split('').forEach((char, x) => {
+                let wx = x * 32, wy = y * 32;
+                if (char === '#') this.platforms.create(wx, wy, 'brick').refreshBody();
+                if (char === '@') { this.startX = wx; this.startY = wy; }
+                if (char === 'B') { 
+                    this.rescueTarget.setPosition(wx, wy); 
+                    this.cage.setPosition(wx, wy);
+                }
+            });
+        });
+
+        // --- THE VULVIAN ---
+        this.player = this.physics.add.sprite(this.startX, this.startY, 'vulvian');
+        this.player.setCollideWorldBounds(true).setDragX(1500);
+        this.physics.add.collider(this.player, this.platforms);
+
+        // Rescue Logic
+        this.physics.add.overlap(this.player, this.rescueTarget, this.rescueSuccess, null, this);
+
+        // --- CAMERA ---
+        this.cameras.main.setBounds(0, 0, map[0].length * 32, map.length * 32);
+        this.physics.world.setBounds(0, 0, map[0].length * 32, map.length * 32);
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1).setZoom(1.5);
+
+        // --- INTERNAL CONTROLS (THE PERMANENT FIX) ---
+        this.createMobileControls();
+
+        // UI Text
+        this.add.text(20, 20, "MISSION: RESCUE BOOBI DOODI", { 
+            font: 'bold 18px Arial', fill: '#00f3ff' 
+        }).setScrollFactor(0);
+    }
+
+    createMobileControls() {
+        const screenW = this.scale.width;
+        const screenH = this.scale.height;
+        const btnY = screenH - 80;
+
+        // LEFT
+        let btnL = this.add.image(80, btnY, 'ui-btn').setInteractive().setScrollFactor(0).setAlpha(0.6);
+        this.add.text(65, btnY - 15, "◀", { fontSize: '40px' }).setScrollFactor(0);
+        btnL.on('pointerdown', () => this.isMovingLeft = true);
+        btnL.on('pointerup', () => this.isMovingLeft = false);
+        btnL.on('pointerout', () => this.isMovingLeft = false);
+
+        // RIGHT
+        let btnR = this.add.image(220, btnY, 'ui-btn').setInteractive().setScrollFactor(0).setAlpha(0.6);
+        this.add.text(205, btnY - 15, "▶", { fontSize: '40px' }).setScrollFactor(0);
+        btnR.on('pointerdown', () => this.isMovingRight = true);
+        btnR.on('pointerup', () => this.isMovingRight = false);
+        btnR.on('pointerout', () => this.isMovingRight = false);
+
+        // JUMP
+        let btnJ = this.add.image(screenW - 100, btnY, 'ui-btn').setInteractive().setScrollFactor(0).setAlpha(0.8).setTint(0x00ff00);
+        this.add.text(screenW - 140, btnY - 10, "JUMP", { fontSize: '24px', fontWeight: 'bold' }).setScrollFactor(0);
+        btnJ.on('pointerdown', () => this.handleJump());
+    }
+
+    handleJump() {
+        if (this.player.body.touching.down) {
+            this.jumps = 1;
+            this.player.setVelocityY(-550);
+        } else if (this.jumps < 2) { // DOUBLE JUMP
+            this.jumps = 2;
+            this.player.setVelocityY(-500);
+            this.tweens.add({ targets: this.player, angle: 360, duration: 400 });
+        }
+    }
+
+    rescueSuccess() {
+        this.physics.pause();
+        this.cage.destroy();
+        this.rescueTarget.setTint(0xffff00);
+        
+        const winText = this.add.text(this.player.x, this.player.y - 100, "BOOBI DOODI SAVED!", {
+            fontSize: '32px', fill: '#0f0', backgroundColor: '#000'
+        }).setOrigin(0.5);
+
+        this.time.delayedCall(2000, () => {
+            this.scene.restart();
+        });
+    }
+
+    update() {
+        if (this.isMovingLeft) {
+            this.player.setVelocityX(-250);
+            this.player.flipX = true;
+        } else if (this.isMovingRight) {
+            this.player.setVelocityX(250);
+            this.player.flipX = false;
+        } else {
+            this.player.setVelocityX(0);
+        }
+
+        // Falling out of bounds reset
+        if (this.player.y > 1000) this.scene.restart();
+    }
+}
+
+// ---------------------------------------------------------
+// 3. LAUNCHER
+// ---------------------------------------------------------
 const config = {
     type: Phaser.AUTO,
     parent: 'game-container',
     scale: {
-        mode: Phaser.Scale.FIT,
+        mode: Phaser.Scale.ENVELOP,
         autoCenter: Phaser.Scale.CENTER_BOTH,
         width: 800,
         height: 600
     },
-    physics: { 
-        default: 'arcade', 
-        arcade: { gravity: { y: 1500 }, debug: false } 
-    },
-    scene: { preload, create, update }
+    physics: { default: 'arcade', arcade: { gravity: { y: 1500 } } },
+    scene: AdventureScene
 };
 
-let player, platforms, spikes, goal;
-let leftZone, rightZone, jumpZone, dashZone;
-let isLeft = false, isRight = false, isJump = false;
-const game = new Phaser.Game(config);
-
-function preload() {
-    let g = this.make.graphics({x: 0, y: 0, add: false});
-    
-    // 1. PLAYER (Neon Blue)
-    g.fillStyle(0x00f3ff); g.fillRect(0, 0, 32, 32);
-    g.generateTexture('player', 32, 32);
-
-    // 2. PLATFORM (Neon Green)
-    g.clear(); g.lineStyle(2, 0x00ff00); g.strokeRect(0, 0, 32, 32);
-    g.fillStyle(0x004400); g.fillRect(0,0,32,32);
-    g.generateTexture('tile', 32, 32);
-
-    // 3. BUTTONS (UI)
-    g.clear(); g.fillStyle(0xffffff, 0.2); g.fillCircle(50, 50, 50);
-    g.generateTexture('btnCircle', 100, 100);
-}
-
-function create() {
-    platforms = this.physics.add.staticGroup();
-    spikes = this.physics.add.staticGroup();
-    goal = this.physics.add.staticGroup();
-
-    // CUSTOM LEVEL MAP (Visible Platforms)
-    const map = [
-        "########################",
-        "#......................#",
-        "#.......G..............#",
-        "#########..............#",
-        "#...........####.......#",
-        "#..@...................#",
-        "#####.......^^^^.......#",
-        "########################"
-    ];
-
-    map.forEach((row, y) => {
-        row.split('').forEach((char, x) => {
-            let wx = x * 32, wy = y * 32;
-            if (char === '#') platforms.create(wx, wy, 'tile').refreshBody();
-            if (char === 'G') goal.create(wx, wy, 'tile').setTint(0xffff00).refreshBody();
-            if (char === '@') { this.startX = wx; this.startY = wy; }
-        });
-    });
-
-    player = this.physics.add.sprite(this.startX, this.startY, 'player');
-    player.setCollideWorldBounds(true);
-    this.physics.add.collider(player, platforms);
-
-    // CAMERA
-    this.cameras.main.startFollow(player, true, 0.1, 0.1);
-    this.cameras.main.setZoom(1.8);
-
-    // --- VIRTUAL BUTTONS (IN-SCREEN) ---
-    // These are placed relative to the CAMERA/SCREEN, not the world.
-    const uiY = 520;
-    
-    // Left Button
-    leftZone = this.add.image(80, uiY, 'btnCircle').setScrollFactor(0).setInteractive().setAlpha(0.5);
-    this.add.text(65, uiY-10, "L", {fontSize:'30px', color:'#fff'}).setScrollFactor(0);
-    
-    // Right Button
-    rightZone = this.add.image(200, uiY, 'btnCircle').setScrollFactor(0).setInteractive().setAlpha(0.5);
-    this.add.text(185, uiY-10, "R", {fontSize:'30px', color:'#fff'}).setScrollFactor(0);
-
-    // Jump Button (Huge on the right side)
-    jumpZone = this.add.image(700, uiY, 'btnCircle').setScrollFactor(0).setInteractive().setAlpha(0.8).setTint(0x00ff00);
-    this.add.text(660, uiY-10, "JUMP", {fontSize:'20px', color:'#fff', fontWeight:'bold'}).setScrollFactor(0);
-
-    // Input Listeners
-    leftZone.on('pointerdown', () => isLeft = true);
-    leftZone.on('pointerup', () => isLeft = false);
-    leftZone.on('pointerout', () => isLeft = false);
-
-    rightZone.on('pointerdown', () => isRight = true);
-    rightZone.on('pointerup', () => isRight = false);
-    rightZone.on('pointerout', () => isRight = false);
-
-    jumpZone.on('pointerdown', () => isJump = true);
-}
-
-function update() {
-    // Left/Right Logic
-    if (isLeft) {
-        player.setVelocityX(-250);
-    } else if (isRight) {
-        player.setVelocityX(250);
-    } else {
-        player.setVelocityX(0);
-    }
-
-    // Jump Logic
-    if (isJump) {
-        if (player.body.touching.down) {
-            player.setVelocityY(-600);
-        }
-        isJump = false; // Reset jump trigger
-    }
-
-    // Reset if you fall off
-    if (player.y > 600) this.scene.restart();
-        }
+new Phaser.Game(config);
+                                  
